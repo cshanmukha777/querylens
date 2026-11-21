@@ -69,6 +69,7 @@ export class Profiler {
       const result = await this.adapter.execute(sql, options.parameters ?? []);
       if (options.signal?.aborted)
         throw new AdapterError("Profiling was cancelled after execution.");
+      const durationMs = Number((performance.now() - start).toFixed(3));
       let plan: unknown;
       let planError: string | undefined;
       if (this.adapter.explain) {
@@ -82,7 +83,7 @@ export class Profiler {
         timestamp: new Date().toISOString(),
         dialect: this.adapter.dialect,
         fingerprint,
-        durationMs: Number((performance.now() - start).toFixed(3)),
+        durationMs,
         rowCount: result.rowCount,
         status: "success",
         ...(plan !== undefined ? { plan } : {}),

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import Database from "better-sqlite3";
 import {
   AdapterError,
@@ -228,6 +228,29 @@ describe("SQLite profiling", () => {
     });
     expect(profiler.getHistory()[0]?.status).toBe("success");
     expect(JSON.stringify(record)).not.toContain("driver details");
+  });
+
+  it("measures query execution separately from plan inspection", async () => {
+    let clock = 10;
+    const timer = vi.spyOn(performance, "now").mockImplementation(() => clock);
+    const profiler = new Profiler({
+      dialect: "sqlite",
+      execute: async () => {
+        clock = 18;
+        return { rows: [], rowCount: 0 };
+      },
+      explain: async () => {
+        clock = 100;
+        return { plan: "ready" };
+      },
+    });
+
+    try {
+      const { record } = await profiler.profile("SELECT 1");
+      expect(record.durationMs).toBe(8);
+    } finally {
+      timer.mockRestore();
+    }
   });
 
   it("rejects non-SELECT queries before calling a generic adapter", async () => {
