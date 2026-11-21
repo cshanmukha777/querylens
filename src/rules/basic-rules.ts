@@ -191,6 +191,10 @@ export const schemaIndexRule: AnalysisRule = {
       if (String(expr.type).toLowerCase() !== "binary_expr") return;
       const operator = String(expr.operator ?? "").toUpperCase();
       if (!["=", ">", ">=", "<", "<=", "IN", "LIKE"].includes(operator)) return;
+      if (operator === "LIKE" && isObject(expr.right)) {
+        const pattern = String(expr.right.value ?? "");
+        if (pattern.startsWith("%") || pattern.startsWith("_")) return;
+      }
       for (const side of [expr.left, expr.right]) {
         if (!isObject(side) || String(side.type).toLowerCase() !== "column_ref") continue;
         const alias = String(side.table ?? "").toLowerCase();

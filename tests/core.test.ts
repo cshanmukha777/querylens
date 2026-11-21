@@ -36,6 +36,9 @@ describe("static SQL analysis", () => {
     const scoped = new QueryLens({ dialect: "sqlite", schema: { tables: [{ name: "users", columns: ["id", "email"], indexes: [] }] } });
     const findings = scoped.analyze("SELECT id FROM users WHERE email = 'a@example.test'").findings;
     expect(findings.map((item) => item.id)).toContain("index.schema-candidate");
+    const suffixSearch = scoped.analyze("SELECT id FROM users WHERE email LIKE '%@example.test'").findings;
+    expect(suffixSearch.map((item) => item.id)).not.toContain("index.schema-candidate");
+    expect(suffixSearch.map((item) => item.id)).toContain("predicate.leading-wildcard-like");
     expect(lens.analyze("SELECT id FROM users WHERE email = 'a@example.test'").findings.map((item) => item.id)).not.toContain("index.schema-candidate");
   });
 
