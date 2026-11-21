@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
-import { AdapterError, analyzeSql, Profiler, QueryLens, SQLiteAdapter, SqlParseError, scoreFindings } from "../src/index.js";
+import { AdapterError, analyzeSql, Profiler, QueryLens, SQLiteAdapter, SqlParseError, scoreFindings, UnsupportedStatementError } from "../src/index.js";
 
 describe("static SQL analysis", () => {
   const lens = new QueryLens({ dialect: "sqlite" });
@@ -102,6 +102,29 @@ describe("SQLite profiling", () => {
     expect(record.plan).toBeTruthy();
     expect(profiler.getHistory()).toHaveLength(1);
     db.close();
+  });
+
+  it("keeps successful query results when plan inspection fails", async () => {
+    const profiler = new Profiler({
+      dialect: "sqlite",
+      execute: async () => ({ rows: [{ id: 1 }], rowCount: 1 }),
+      explain: async () => { throw new Error("driver details may contain query text"); },
+    });
+    const { record, rows } = await profiler.profile("SELECT 1 AS id");
+    expect(rows).toEqual([{ id: 1 }]);
+    expect(record).toMatchObject({ status: "success", rowCount: 1, planError: "Execution plan inspection failed." });
+    expect(profiler.getHistory()[0]?.status).toBe("success");
+    expect(JSON.stringify(record)).not.toContain("driver details");
+  });
+
+  it("rejects non-SELECT queries before calling a generic adapter", async () => {
+    let executed = false;
+    const profiler = new Profiler({
+      dialect: "sqlite",
+      execute: async () => { executed = true; return { rows: [], rowCount: 0 }; },
+    });
+    await expect(profiler.profile("DELETE FROM users")).rejects.toBeInstanceOf(UnsupportedStatementError);
+    expect(executed).toBe(false);
   });
 
   it("rejects non-read operations", async () => {

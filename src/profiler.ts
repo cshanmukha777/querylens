@@ -1,5 +1,6 @@
 import { AdapterError } from "./errors.js";
 import { fingerprintSql } from "./fingerprint.js";
+import { parseSelectSql } from "./parser.js";
 import type { SqlAdapter } from "./adapters/adapter.js";
 import type { SqlDialect } from "./types.js";
 
@@ -16,6 +17,7 @@ export interface ProfileRecord {
   rowCount: number | null;
   status: "success" | "error";
   plan?: unknown;
+  planError?: string;
 }
 
 export class ProfileHistory {
@@ -35,15 +37,26 @@ export class Profiler {
 
   async profile(sql: string, options: ProfileOptions = {}): Promise<{ record: ProfileRecord; rows: unknown[] }> {
     if (options.signal?.aborted) throw new AdapterError("Profiling was cancelled before execution.");
+    parseSelectSql(sql, this.adapter.dialect);
     const fingerprint = fingerprintSql(sql, this.adapter.dialect);
     const start = performance.now();
     try {
       const result = await this.adapter.execute(sql, options.parameters ?? []);
       if (options.signal?.aborted) throw new AdapterError("Profiling was cancelled after execution.");
+      let plan: unknown;
+      let planError: string | undefined;
+      if (this.adapter.explain) {
+        try {
+          plan = await this.adapter.explain(sql, options.parameters ?? []);
+        } catch {
+          planError = "Execution plan inspection failed.";
+        }
+      }
       const record: ProfileRecord = {
         timestamp: new Date().toISOString(), dialect: this.adapter.dialect, fingerprint,
         durationMs: Number((performance.now() - start).toFixed(3)), rowCount: result.rowCount, status: "success",
-        ...(this.adapter.explain ? { plan: await this.adapter.explain(sql, options.parameters ?? []) } : {}),
+        ...(plan !== undefined ? { plan } : {}),
+        ...(planError ? { planError } : {}),
       };
       this.history.add(record);
       return { record, rows: result.rows };
