@@ -1,6 +1,6 @@
 {
   "name": "@shanmukha_npm/querylens",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Static SQL analysis and database-aware query profiling for Node.js.",
   "license": "MIT",
   "author": "cshanmukha777",
@@ -27,6 +27,7 @@
   "files": [
     "dist",
     "README.md",
+    "API.md",
     "LICENSE",
     "CHANGELOG.md"
   ],
