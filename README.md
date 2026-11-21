@@ -8,6 +8,8 @@ QueryLens provides static SQL structure checks and opt-in database profiling. St
 
 The package provides static analysis for SQLite, PostgreSQL, and MySQL SQL syntax, a command-line interface, and opt-in profiling through its SQLite adapter. PostgreSQL and MySQL database profiling adapters are not implemented. QueryLens is early-stage software; validate all guidance against your schema and actual database plans.
 
+See the [API reference](API.md) for exported types, errors, profiling behavior, and limitations.
+
 ## Install
 
 ```sh
@@ -36,7 +38,7 @@ console.log(result.recommendations);
 - `SELECT *` projection.
 - `SELECT` without `WHERE` (informational only).
 - `UPDATE` and `DELETE` without `WHERE`.
-- Function-wrapped predicate columns.
+- Function- or cast-wrapped predicate columns.
 - Leading-wildcard `LIKE` patterns.
 - Several `OR` branches.
 - Join count and nested query indicators.

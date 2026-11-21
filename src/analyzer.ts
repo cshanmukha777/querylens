@@ -38,6 +38,7 @@ function countComplexity(ast: SqlAst): ComplexityIndicators {
   const node = ast as Record<string, unknown>;
   let nestedQueries = 0;
   let booleanBranches = 0;
+  let hasAggregation = node.groupby != null || node.having != null;
   const visit = (value: unknown, root = false): void => {
     if (Array.isArray(value)) {
       for (const item of value) visit(item);
@@ -52,6 +53,8 @@ function countComplexity(ast: SqlAst): ComplexityIndicators {
       String(current.operator).toUpperCase() === "OR"
     )
       booleanBranches += 1;
+    if (String(current.type).toLowerCase() === "aggr_func")
+      hasAggregation = true;
     for (const child of Object.values(current)) visit(child);
   };
   visit(ast, true);
@@ -68,7 +71,7 @@ function countComplexity(ast: SqlAst): ComplexityIndicators {
     nestedQueries,
     booleanBranches,
     projectionColumns: columns,
-    hasAggregation: node.groupby != null || node.having != null,
+    hasAggregation,
     hasOrdering: node.orderby != null,
   };
 }

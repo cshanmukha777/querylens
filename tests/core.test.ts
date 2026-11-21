@@ -52,6 +52,9 @@ describe("static SQL analysis", () => {
     const rightWrapped = lens.analyze(
       "SELECT id FROM users WHERE id = DATE(created_at)",
     );
+    const castWrapped = lens.analyze(
+      "SELECT id FROM users WHERE CAST(created_at AS DATE) = '2026-01-01'",
+    );
     const projectionOnly = lens.analyze(
       "SELECT DATE(created_at) = '2026-01-01' AS same_day FROM users",
     );
@@ -59,6 +62,9 @@ describe("static SQL analysis", () => {
       "predicate.function-on-column",
     );
     expect(rightWrapped.findings.map((item) => item.id)).toContain(
+      "predicate.function-on-column",
+    );
+    expect(castWrapped.findings.map((item) => item.id)).toContain(
       "predicate.function-on-column",
     );
     expect(projectionOnly.findings.map((item) => item.id)).not.toContain(
@@ -162,6 +168,15 @@ describe("static SQL analysis", () => {
     expect(result).toEqual({ score: 88, grade: "B" });
     expect(() => scoreFindings([{ severity: "urgent" } as never])).toThrow(
       "Unsupported finding severity: urgent",
+    );
+  });
+
+  it("counts aggregate functions without requiring GROUP BY", () => {
+    expect(
+      lens.analyze("SELECT COUNT(*) FROM users").complexity.hasAggregation,
+    ).toBe(true);
+    expect(lens.analyze("SELECT id FROM users").complexity.hasAggregation).toBe(
+      false,
     );
   });
 

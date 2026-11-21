@@ -135,7 +135,10 @@ export const predicateRules: AnalysisRule = {
             leadingWildcard = true;
         }
         for (const side of [node.left, node.right]) {
-          if (!isObject(side) || String(side.type).toLowerCase() !== "function")
+          if (
+            !isObject(side) ||
+            !["function", "cast"].includes(String(side.type).toLowerCase())
+          )
             continue;
           visit(side, (child) => {
             if (String(child.type).toLowerCase() !== "column_ref") return;
@@ -152,15 +155,15 @@ export const predicateRules: AnalysisRule = {
         finding({
           id: "predicate.function-on-column",
           severity: "warning",
-          title: "Function applied to a filtered column",
-          explanation: `A function is applied to ${columns.join(", ")} in a predicate.`,
+          title: "Function or cast applied to a filtered column",
+          explanation: `A function or cast is applied to ${columns.join(", ")} in a predicate.`,
           whyItMatters:
             "This form may prevent some engines from using a conventional index on the underlying column.",
           remediation:
             "Check whether an equivalent range predicate or a database-specific expression index fits the data type and semantics.",
           confidence: 0.8,
           evidence: columns.map(
-            (column) => `A predicate applies a function to ${column}.`,
+            (column) => `A predicate applies a function or cast to ${column}.`,
           ),
         }),
       );

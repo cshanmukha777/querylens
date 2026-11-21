@@ -24,7 +24,7 @@ console.log(result.findings);
 
 `lens.analyze(sql)` returns an `AnalysisResult` with the dialect, recognized statement type, static score and grade, fingerprint, findings, recommendations, structural complexity indicators, and severity counts. `analyzeSql(sql, dialect, options?)` provides the same analysis without constructing a `QueryLens` instance; its `options.rules` property accepts custom rules.
 
-The built-in checks report wildcard projections, statements without a filter, function-wrapped predicate columns, leading-wildcard `LIKE` patterns, multiple `OR` branches, complex joins and nested queries, and candidate indexes when a schema snapshot is supplied. These signals do not prove that a query is slow or that a rewrite will be faster. Check semantics and inspect plans with representative data.
+The built-in checks report wildcard projections, statements without a filter, function- or cast-wrapped predicate columns, leading-wildcard `LIKE` patterns, multiple `OR` branches, complex joins and nested queries, and candidate indexes when a schema snapshot is supplied. These signals do not prove that a query is slow or that a rewrite will be faster. Check semantics and inspect plans with representative data.
 
 The score starts at 100 and subtracts 2 for each `info`, 10 for each `warning`, and 30 for each `critical` finding, with a 0–100 clamp. The result is a structural indicator, not a runtime estimate. `scoringMethodology` exports the same description; `scoreFindings(findings)` applies the weights directly.
 
