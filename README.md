@@ -4,6 +4,10 @@
 
 QueryLens provides static SQL structure checks and opt-in database profiling. Static scores describe query structure; they do not predict execution time or guarantee an improvement.
 
+## Playground
+
+Explore the separate [QueryLens Playground repository](https://github.com/cshanmukha777/querylens-playground). A public demo URL will be added after a verified deployment.
+
 ## Status
 
 The package provides static analysis for SQLite, PostgreSQL, and MySQL SQL syntax, a command-line interface, and opt-in profiling through its SQLite adapter. PostgreSQL and MySQL database profiling adapters are not implemented. QueryLens is early-stage software; validate all guidance against your schema and actual database plans.
