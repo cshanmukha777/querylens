@@ -17,8 +17,10 @@ The alternative `sql-parser-cst` has a useful typed concrete syntax tree, but it
 
 Static analysis never opens a connection. Scores summarize documented syntactic signals only. Runtime profiling is a separate opt-in layer using an explicit adapter. SQLite plan inspection uses non-executing `EXPLAIN QUERY PLAN`; no `EXPLAIN ANALYZE` is issued.
 
-## UI design brief
+## Distribution boundary
 
-The playground is a working SQL workspace first: compact navigation, a labeled editor, sample selection, analysis action, and a readable result area. Use neutral solid surfaces, one restrained accent, semantic severity text plus color, IBM Plex Sans/Mono (SIL Open Font License), and visible focus. Avoid decorative charts, fake performance numbers, gradients, glowing borders, oversized cards, and motion on page load. Keep keyboard use and reduced motion intact; aim for 44px touch targets and put errors beside the action that caused them.
-
-This translates the UnsLoP UI guidance into a short project check: use semantic controls; keep a visible focus ring; avoid color-only status; show errors inline; animate only meaningful state changes under 200ms; respect reduced motion; use one accent; remove decorative filler; keep editor and results useful on narrow screens.
+- `tsup` builds the public library and CLI from `src/index.ts` and `src/cli.ts` as ESM, CommonJS, and declarations.
+- The npm package contains the built output, README, API reference, license, and changelog. Source, tests, and contributor-only documentation stay in the GitHub repository.
+- The CLI reads SQL files and performs static analysis or fingerprinting; it never opens a database connection.
+- Runtime profiling uses an injected SQLite-compatible handle. QueryLens does not bundle a database driver or claim built-in PostgreSQL/MySQL profiling.
+- The browser playground is maintained separately and is outside this package's release surface.
