@@ -1,13 +1,13 @@
 import { AdapterError } from "../errors.js";
+import { parseSelectSql } from "../parser.js";
 import type { PlanFinding, SqlAdapter, SqliteDatabaseLike } from "./adapter.js";
 import type { SqlDialect } from "../types.js";
 
 function assertReadOnlyStatement(sql: string): void {
-  // The SQLite connection should also be opened read-only. This lexical guard is defense in depth,
-  // not a security parser; arbitrary public input must never reach this method.
-  const first = sql.trimStart().replace(/^\/\*[\s\S]*?\*\//, "").split(/\s+/, 1)[0]?.toUpperCase();
-  if (first !== "SELECT" && first !== "WITH" && first !== "EXPLAIN") {
-    throw new AdapterError("SQLiteAdapter accepts read-only SELECT queries only.");
+  try {
+    parseSelectSql(sql, "sqlite");
+  } catch (cause) {
+    throw new AdapterError("SQLiteAdapter accepts one SELECT statement only.", { cause });
   }
 }
 
@@ -15,7 +15,14 @@ export class SQLiteAdapter implements SqlAdapter {
   readonly dialect: SqlDialect = "sqlite";
 
   constructor(private readonly database: SqliteDatabaseLike) {
-    this.database.pragma?.("query_only = ON");
+    if (!database || typeof database.prepare !== "function" || typeof database.pragma !== "function") {
+      throw new AdapterError("SQLiteAdapter requires a database handle with prepare() and pragma() support.");
+    }
+    try {
+      this.database.pragma("query_only = ON");
+    } catch (cause) {
+      throw new AdapterError("SQLiteAdapter could not enable SQLite query_only mode.", { cause });
+    }
   }
 
   async execute<Row = Record<string, unknown>>(sql: string, parameters: readonly unknown[] = []) {

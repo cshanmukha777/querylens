@@ -107,7 +107,22 @@ describe("SQLite profiling", () => {
   it("rejects non-read operations", async () => {
     const db = new Database(":memory:");
     const adapter = new SQLiteAdapter(db);
-    await expect(adapter.execute("DELETE FROM users")).rejects.toBeInstanceOf(AdapterError);
+    await expect(adapter.execute("DELETE FROM users")).rejects.toThrow("SELECT statement only");
+    await expect(adapter.execute("EXPLAIN SELECT 1")).rejects.toThrow("SELECT statement only");
+    await expect(adapter.execute("WITH doomed AS (SELECT 1) DELETE FROM users")).rejects.toThrow("SELECT statement only");
     db.close();
+  });
+
+  it("accepts commented and CTE SELECT statements", async () => {
+    const db = new Database(":memory:");
+    const adapter = new SQLiteAdapter(db);
+    const result = await adapter.execute("/* leading */ -- comment\nWITH one AS (SELECT 1 AS value) SELECT value FROM one");
+    expect(result.rows).toEqual([{ value: 1 }]);
+    db.close();
+  });
+
+  it("requires query_only support on the injected database handle", () => {
+    expect(() => new SQLiteAdapter({ prepare: () => ({ all: () => [], run: () => ({ changes: 0, lastInsertRowid: 0 }) }) } as never))
+      .toThrow(AdapterError);
   });
 });

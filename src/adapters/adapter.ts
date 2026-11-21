@@ -17,7 +17,7 @@ export interface SqliteDatabaseLike {
     all(...parameters: unknown[]): unknown[];
     run(...parameters: unknown[]): { changes: number; lastInsertRowid: number | bigint };
   };
-  pragma?(source: string): unknown;
+  pragma(source: string): unknown;
 }
 
 export interface PlanFinding {
