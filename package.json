@@ -1,5 +1,5 @@
 {
-  "name": "@cshanmukha777/querylens",
+  "name": "@shanmukha_npm/querylens",
   "version": "0.1.0",
   "description": "Static SQL analysis and database-aware query profiling for Node.js.",
   "license": "MIT",
