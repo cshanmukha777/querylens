@@ -34,6 +34,18 @@ describe("static SQL analysis", () => {
     expect(lens.fingerprint("SELECT id FROM users WHERE id = 10")).toBe(
       lens.fingerprint(" select id\nfrom users where id=50; "),
     );
+    expect(lens.fingerprint("SELECT * FROM users WHERE id = 1 AND active = TRUE AND name = 'Ada'")).toBe(
+      lens.fingerprint("SELECT * FROM users WHERE id = 2 AND active = FALSE AND name = 'Lin'")
+    );
+  });
+
+  it("normalizes named and numbered bind parameter names", () => {
+    expect(lens.fingerprint("SELECT id FROM users WHERE id = :userId")).toBe(
+      lens.fingerprint("SELECT id FROM users WHERE id = :accountId"),
+    );
+    expect(lens.fingerprint("SELECT id FROM users WHERE id = $1")).toBe(
+      lens.fingerprint("SELECT id FROM users WHERE id = $2"),
+    );
   });
 
   it("rejects malformed and multi-statement input", () => {
