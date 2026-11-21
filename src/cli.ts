@@ -1,36 +1,29 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
 import { analyzeSql } from "./analyzer.js";
+import { CliUsageError, parseCliArguments } from "./cli-args.js";
 import { fingerprintSql } from "./fingerprint.js";
-import type { SqlDialect } from "./types.js";
 
 const usage = `QueryLens — static SQL structure analysis\n\nUsage:\n  querylens analyze <file.sql> [--dialect sqlite|postgresql|mysql] [--format text|json]\n  querylens fingerprint <file.sql> [--dialect sqlite|postgresql|mysql]\n  querylens --help\n`;
 
-function option(args: string[], flag: string, fallback: string): string {
-  const index = args.indexOf(flag);
-  return index >= 0 ? args[index + 1] ?? "" : fallback;
-}
-
-function parseDialect(value: string): SqlDialect {
-  if (value === "sqlite" || value === "postgresql" || value === "mysql") return value;
-  throw new Error(`Unsupported dialect: ${value}`);
-}
-
 async function main(args: string[]): Promise<number> {
-  if (args.length === 0 || args[0] === "--help" || args[0] === "-h") { process.stdout.write(usage); return 0; }
-  const command = args[0];
-  if (command !== "analyze" && command !== "fingerprint") { process.stderr.write(usage); return 2; }
-  const file = args[1];
-  if (!file || file.startsWith("--")) { process.stderr.write("A SQL file path is required.\n"); return 2; }
+  let parsed;
   try {
-    const dialect = parseDialect(option(args, "--dialect", "sqlite"));
-    const sql = await readFile(file, "utf8");
-    if (command === "fingerprint") {
-      process.stdout.write(`${fingerprintSql(sql, dialect)}\n`);
+    parsed = parseCliArguments(args);
+  } catch (error) {
+    process.stderr.write(`${error instanceof CliUsageError ? error.message : "Invalid command line arguments."}\n${usage}`);
+    return 2;
+  }
+  if (!parsed) { process.stdout.write(usage); return 0; }
+
+  try {
+    const sql = await readFile(parsed.file, "utf8");
+    if (parsed.command === "fingerprint") {
+      process.stdout.write(`${fingerprintSql(sql, parsed.dialect)}\n`);
       return 0;
     }
-    const result = analyzeSql(sql, dialect);
-    if (option(args, "--format", "text") === "json") process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    const result = analyzeSql(sql, parsed.dialect);
+    if (parsed.format === "json") process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     else {
       process.stdout.write(`QueryLens structural score: ${result.score}/100 (${result.grade})\n`);
       process.stdout.write(`Dialect: ${result.dialect} · Statement: ${result.statementType}\n`);
