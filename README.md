@@ -20,7 +20,9 @@ npm install @shanmukha_npm/querylens
 import { QueryLens } from "@shanmukha_npm/querylens";
 
 const lens = new QueryLens({ dialect: "sqlite" });
-const result = lens.analyze(`SELECT * FROM orders WHERE DATE(created_at) = '2026-11-22'`);
+const result = lens.analyze(
+  `SELECT * FROM orders WHERE DATE(created_at) = '2026-11-22'`,
+);
 
 console.log(result.score, result.grade);
 console.log(result.findings);
@@ -74,9 +76,14 @@ The CLI performs static analysis only. It does not open a database connection.
 import Database from "better-sqlite3";
 import { Profiler, SQLiteAdapter } from "@shanmukha_npm/querylens";
 
-const db = new Database("sample.sqlite", { readonly: true, fileMustExist: true });
+const db = new Database("sample.sqlite", {
+  readonly: true,
+  fileMustExist: true,
+});
 const profiler = new Profiler(new SQLiteAdapter(db));
-const { record } = await profiler.profile("SELECT id FROM users WHERE id = ?", { parameters: [42] });
+const { record } = await profiler.profile("SELECT id FROM users WHERE id = ?", {
+  parameters: [42],
+});
 console.log(record.durationMs, record.rowCount, record.plan);
 ```
 

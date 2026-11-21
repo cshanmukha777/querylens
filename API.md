@@ -16,11 +16,11 @@ console.log(result.findings);
 
 `QueryLens` options:
 
-| Option | Type | Description |
-| --- | --- | --- |
-| `dialect` | `"sqlite" \| "postgresql" \| "mysql"` | SQL parser dialect. This does not imply a database profiling adapter exists for that engine. |
-| `schema` | `SchemaSnapshot` | Optional table, column, and index facts used for cautious index candidate findings. |
-| `customRules` | `AnalysisRule[]` | Extra synchronous rules that return findings. |
+| Option        | Type                                  | Description                                                                                  |
+| ------------- | ------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `dialect`     | `"sqlite" \| "postgresql" \| "mysql"` | SQL parser dialect. This does not imply a database profiling adapter exists for that engine. |
+| `schema`      | `SchemaSnapshot`                      | Optional table, column, and index facts used for cautious index candidate findings.          |
+| `customRules` | `AnalysisRule[]`                      | Extra synchronous rules that return findings.                                                |
 
 `lens.analyze(sql)` returns an `AnalysisResult` with the dialect, recognized statement type, static score and grade, fingerprint, findings, recommendations, structural complexity indicators, and severity counts. `analyzeSql(sql, dialect, options?)` provides the same analysis without constructing a `QueryLens` instance; its `options.rules` property accepts custom rules.
 
@@ -31,9 +31,16 @@ The score starts at 100 and subtracts 2 for each `info`, 10 for each `warning`, 
 ## Fingerprints and reports
 
 ```ts
-import { fingerprintSql, toHtmlReport, toJsonReport } from "@shanmukha_npm/querylens";
+import {
+  fingerprintSql,
+  toHtmlReport,
+  toJsonReport,
+} from "@shanmukha_npm/querylens";
 
-const fingerprint = fingerprintSql("SELECT id FROM users WHERE id = 42", "sqlite");
+const fingerprint = fingerprintSql(
+  "SELECT id FROM users WHERE id = 42",
+  "sqlite",
+);
 const json = toJsonReport(result);
 const html = toHtmlReport(result);
 ```
@@ -52,7 +59,10 @@ npm install better-sqlite3
 import Database from "better-sqlite3";
 import { Profiler, SQLiteAdapter } from "@shanmukha_npm/querylens";
 
-const db = new Database("sample.sqlite", { readonly: true, fileMustExist: true });
+const db = new Database("sample.sqlite", {
+  readonly: true,
+  fileMustExist: true,
+});
 const profiler = new Profiler(new SQLiteAdapter(db));
 const { record, rows } = await profiler.profile(
   "SELECT id FROM users WHERE id = ?",
