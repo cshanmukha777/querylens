@@ -92,6 +92,12 @@ describe("static SQL analysis", () => {
     expect(suffixSearch.map((item) => item.id)).toContain(
       "predicate.leading-wildcard-like",
     );
+    const parameterizedSearch = scoped.analyze(
+      "SELECT id FROM users WHERE email LIKE ?",
+    ).findings;
+    expect(parameterizedSearch.map((item) => item.id)).not.toContain(
+      "index.schema-candidate",
+    );
     expect(
       lens
         .analyze("SELECT id FROM users WHERE email = 'a@example.test'")

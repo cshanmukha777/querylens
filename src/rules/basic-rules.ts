@@ -318,7 +318,14 @@ export const schemaIndexRule: AnalysisRule = {
         const operator = String(expr.operator ?? "").toUpperCase();
         if (!["=", ">", ">=", "<", "<=", "IN", "LIKE"].includes(operator))
           return;
-        if (operator === "LIKE" && isObject(expr.right)) {
+        if (operator === "LIKE") {
+          if (!isObject(expr.right)) return;
+          if (
+            !String(expr.right.type ?? "")
+              .toLowerCase()
+              .includes("string")
+          )
+            return;
           const pattern = String(expr.right.value ?? "");
           if (pattern.startsWith("%") || pattern.startsWith("_")) return;
         }
