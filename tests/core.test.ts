@@ -1,0 +1,83 @@
+import { describe, expect, it } from "vitest";
+import Database from "better-sqlite3";
+import { AdapterError, Profiler, QueryLens, SQLiteAdapter, SqlParseError, scoreFindings } from "../src/index.js";
+
+describe("static SQL analysis", () => {
+  const lens = new QueryLens({ dialect: "sqlite" });
+
+  it("detects wildcard projection and records structural output", () => {
+    const result = lens.analyze("SELECT * FROM users WHERE id = 7");
+    expect(result.findings.map((item) => item.id)).toContain("projection.select-star");
+    expect(result.complexity.projectionColumns).toBe(1);
+    expect(result.score).toBe(90);
+  });
+
+  it("distinguishes a broad SELECT from an unfiltered destructive statement", () => {
+    expect(lens.analyze("SELECT id FROM users").findings[0]?.severity).toBe("info");
+    expect(lens.analyze("DELETE FROM users").findings[0]?.severity).toBe("critical");
+  });
+
+  it("identifies non-sargable functions and leading wildcard LIKE", () => {
+    const findings = lens.analyze("SELECT id FROM users WHERE DATE(created_at) = '2026-01-01' OR name LIKE '%lee'").findings;
+    expect(findings.map((item) => item.id)).toContain("predicate.function-on-column");
+    expect(findings.map((item) => item.id)).toContain("predicate.leading-wildcard-like");
+  });
+
+  it("only raises index candidates when a supplied schema supports the signal", () => {
+    const scoped = new QueryLens({ dialect: "sqlite", schema: { tables: [{ name: "users", columns: ["id", "email"], indexes: [] }] } });
+    const findings = scoped.analyze("SELECT id FROM users WHERE email = 'a@example.test'").findings;
+    expect(findings.map((item) => item.id)).toContain("index.schema-candidate");
+    expect(lens.analyze("SELECT id FROM users WHERE email = 'a@example.test'").findings.map((item) => item.id)).not.toContain("index.schema-candidate");
+  });
+
+  it("fingerprints SQL structure while ignoring literal values and formatting", () => {
+    expect(lens.fingerprint("SELECT id FROM users WHERE id = 10")).toBe(
+      lens.fingerprint(" select id\nfrom users where id=50; "),
+    );
+  });
+
+  it("rejects malformed and multi-statement input", () => {
+    expect(() => lens.analyze("SELECT FROM")).toThrow(SqlParseError);
+    expect(() => lens.analyze("SELECT id FROM users; SELECT id FROM orders")).toThrow(/one SQL statement/i);
+  });
+
+  it("uses deterministic, documented severity weights", () => {
+    const result = scoreFindings([
+      { id: "i", severity: "info", title: "i", explanation: "", whyItMatters: "", confidence: 1, remediation: "", evidence: [] },
+      { id: "w", severity: "warning", title: "w", explanation: "", whyItMatters: "", confidence: 1, remediation: "", evidence: [] },
+    ]);
+    expect(result).toEqual({ score: 88, grade: "B" });
+  });
+
+  it("escapes generated HTML report content", () => {
+    const unsafeLens = new QueryLens({ dialect: "sqlite", customRules: [{
+      id: "test.unsafe", analyze: () => [{ id: "test.unsafe", severity: "warning", title: "<script>",
+        explanation: "<script>", whyItMatters: "", confidence: 0.5, remediation: "<script>", evidence: [] }],
+    }] });
+    const html = unsafeLens.html(unsafeLens.analyze("SELECT id FROM users"));
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("&lt;script&gt;");
+  });
+});
+
+describe("SQLite profiling", () => {
+  it("profiles a parameterized read and includes a real SQLite plan", async () => {
+    const db = new Database(":memory:");
+    db.exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO users (name) VALUES ('Ada')");
+    const profiler = new Profiler(new SQLiteAdapter(db));
+    const { record, rows } = await profiler.profile("SELECT name FROM users WHERE id = ?", { parameters: [1] });
+    expect(rows).toEqual([{ name: "Ada" }]);
+    expect(record.status).toBe("success");
+    expect(record.durationMs).toBeGreaterThanOrEqual(0);
+    expect(record.plan).toBeTruthy();
+    expect(profiler.getHistory()).toHaveLength(1);
+    db.close();
+  });
+
+  it("rejects non-read operations", async () => {
+    const db = new Database(":memory:");
+    const adapter = new SQLiteAdapter(db);
+    await expect(adapter.execute("DELETE FROM users")).rejects.toBeInstanceOf(AdapterError);
+    db.close();
+  });
+});
