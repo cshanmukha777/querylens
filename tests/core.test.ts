@@ -23,6 +23,15 @@ describe("static SQL analysis", () => {
     expect(findings.map((item) => item.id)).toContain("predicate.leading-wildcard-like");
   });
 
+  it("detects wrapped columns on either side of a predicate only", () => {
+    const leftWrapped = lens.analyze("SELECT id FROM users WHERE DATE(created_at) = '2026-01-01'");
+    const rightWrapped = lens.analyze("SELECT id FROM users WHERE id = DATE(created_at)");
+    const projectionOnly = lens.analyze("SELECT DATE(created_at) = '2026-01-01' AS same_day FROM users");
+    expect(leftWrapped.findings.map((item) => item.id)).toContain("predicate.function-on-column");
+    expect(rightWrapped.findings.map((item) => item.id)).toContain("predicate.function-on-column");
+    expect(projectionOnly.findings.map((item) => item.id)).not.toContain("predicate.function-on-column");
+  });
+
   it("only raises index candidates when a supplied schema supports the signal", () => {
     const scoped = new QueryLens({ dialect: "sqlite", schema: { tables: [{ name: "users", columns: ["id", "email"], indexes: [] }] } });
     const findings = scoped.analyze("SELECT id FROM users WHERE email = 'a@example.test'").findings;

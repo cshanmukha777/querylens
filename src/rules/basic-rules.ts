@@ -10,6 +10,24 @@ function visit(value: unknown, callback: (node: AstNode) => void): void {
   for (const child of Object.values(value)) visit(child, callback);
 }
 
+function visitPredicates(value: unknown, callback: (node: AstNode) => void): void {
+  const visited = new Set<AstNode>();
+  const visitClause = (clause: unknown): void => visit(clause, (node) => {
+    if (visited.has(node)) return;
+    visited.add(node);
+    callback(node);
+  });
+  const findClauses = (current: unknown): void => {
+    if (Array.isArray(current)) { for (const item of current) findClauses(item); return; }
+    if (!isObject(current)) return;
+    for (const [key, child] of Object.entries(current)) {
+      if (key === "where" || key === "having" || key === "on") visitClause(child);
+      findClauses(child);
+    }
+  };
+  findClauses(value);
+}
+
 function finding(input: Omit<Finding, "confidence"> & { confidence?: number }): Finding {
   const { confidence = 0.9, ...rest } = input;
   return { ...rest, confidence };
@@ -63,9 +81,9 @@ export const predicateRules: AnalysisRule = {
   analyze(context: AnalysisContext) {
     const findings: Finding[] = [];
     let leadingWildcard = false;
-    let wrappedColumn: string | undefined;
+    const wrappedColumns = new Set<string>();
     let orBranches = 0;
-    visit(context.ast, (node) => {
+    visitPredicates(context.ast, (node) => {
       const kind = String(node.type ?? "").toLowerCase();
       if (kind === "binary_expr") {
         const operator = String(node.operator ?? "").toUpperCase();
@@ -74,22 +92,27 @@ export const predicateRules: AnalysisRule = {
           const pattern = String(node.right.value ?? "");
           if (pattern.startsWith("%") || pattern.startsWith("_")) leadingWildcard = true;
         }
-        if (isObject(node.left) && String(node.left.type).toLowerCase() === "function") {
-          const refs: string[] = [];
-          visit(node.left, (child) => {
-            if (String(child.type).toLowerCase() === "column_ref") refs.push(String(child.column ?? "column"));
+        for (const side of [node.left, node.right]) {
+          if (!isObject(side) || String(side.type).toLowerCase() !== "function") continue;
+          visit(side, (child) => {
+            if (String(child.type).toLowerCase() !== "column_ref") return;
+            const table = String(child.table ?? "");
+            const column = String(child.column ?? "column");
+            wrappedColumns.add(table ? `${table}.${column}` : column);
           });
-          if (refs.length) wrappedColumn = refs[0];
         }
       }
     });
-    if (wrappedColumn) findings.push(finding({
+    if (wrappedColumns.size) {
+      const columns = [...wrappedColumns];
+      findings.push(finding({
       id: "predicate.function-on-column", severity: "warning", title: "Function applied to a filtered column",
-      explanation: `A function is applied to ${wrappedColumn} in a predicate.`,
+      explanation: `A function is applied to ${columns.join(", ")} in a predicate.`,
       whyItMatters: "This form may prevent some engines from using a conventional index on the underlying column.",
       remediation: "Check whether an equivalent range predicate or a database-specific expression index fits the data type and semantics.",
-      confidence: 0.8, evidence: [`The predicate's left expression applies a function to ${wrappedColumn}.`],
-    }));
+      confidence: 0.8, evidence: columns.map((column) => `A predicate applies a function to ${column}.`),
+      }));
+    }
     if (leadingWildcard) findings.push(finding({
       id: "predicate.leading-wildcard-like", severity: "warning", title: "LIKE pattern begins with a wildcard",
       explanation: "The parsed LIKE pattern starts with a wildcard character.",
