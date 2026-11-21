@@ -61,6 +61,11 @@ export interface QueryLensOptions {
   customRules?: AnalysisRule[];
 }
 
+export interface AnalyzeOptions {
+  schema?: SchemaSnapshot;
+  rules?: AnalysisRule[];
+}
+
 export interface IndexDefinition {
   name: string;
   columns: string[];

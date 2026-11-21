@@ -20,6 +20,11 @@ export interface ProfileRecord {
   planError?: string;
 }
 
+export interface ProfileResult {
+  record: ProfileRecord;
+  rows: unknown[];
+}
+
 function snapshotRecord(record: ProfileRecord): ProfileRecord {
   try {
     return structuredClone(record);
@@ -44,7 +49,7 @@ export class ProfileHistory {
 export class Profiler {
   constructor(private readonly adapter: SqlAdapter, private readonly history = new ProfileHistory()) {}
 
-  async profile(sql: string, options: ProfileOptions = {}): Promise<{ record: ProfileRecord; rows: unknown[] }> {
+  async profile(sql: string, options: ProfileOptions = {}): Promise<ProfileResult> {
     if (options.signal?.aborted) throw new AdapterError("Profiling was cancelled before execution.");
     parseSelectSql(sql, this.adapter.dialect);
     const fingerprint = fingerprintSql(sql, this.adapter.dialect);

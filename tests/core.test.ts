@@ -77,6 +77,7 @@ describe("static SQL analysis", () => {
       { id: "w", severity: "warning", title: "w", explanation: "", whyItMatters: "", confidence: 1, remediation: "", evidence: [] },
     ]);
     expect(result).toEqual({ score: 88, grade: "B" });
+    expect(() => scoreFindings([{ severity: "urgent" } as never])).toThrow("Unsupported finding severity: urgent");
   });
 
   it("escapes generated HTML report content", () => {

@@ -2,7 +2,7 @@ import { fingerprintSql } from "./fingerprint.js";
 import { assertSupportedStatement, parseSql, type SqlAst } from "./parser.js";
 import { scoreFindings } from "./scoring.js";
 import { defaultRules } from "./rules/basic-rules.js";
-import type { AnalysisContext, AnalysisResult, AnalysisRule, ComplexityIndicators, Finding, Recommendation, SchemaSnapshot, SqlDialect } from "./types.js";
+import type { AnalysisContext, AnalysisResult, AnalysisRule, AnalyzeOptions, ComplexityIndicators, Finding, Recommendation, SqlDialect } from "./types.js";
 
 function sourceLocation(value: unknown): Finding["location"] {
   if (!value || typeof value !== "object") return undefined;
@@ -58,7 +58,7 @@ function recommendationsFrom(findings: Finding[]): Recommendation[] {
 export function analyzeSql(
   sql: string,
   dialect: SqlDialect,
-  options: { schema?: SchemaSnapshot; rules?: AnalysisRule[] } = {},
+  options: AnalyzeOptions = {},
 ): AnalysisResult {
   const ast = parseSql(sql, dialect);
   const statement = assertSupportedStatement(ast);
