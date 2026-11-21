@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
-import { AdapterError, Profiler, QueryLens, SQLiteAdapter, SqlParseError, scoreFindings } from "../src/index.js";
+import { AdapterError, analyzeSql, Profiler, QueryLens, SQLiteAdapter, SqlParseError, scoreFindings } from "../src/index.js";
 
 describe("static SQL analysis", () => {
   const lens = new QueryLens({ dialect: "sqlite" });
@@ -39,6 +39,12 @@ describe("static SQL analysis", () => {
   it("rejects malformed and multi-statement input", () => {
     expect(() => lens.analyze("SELECT FROM")).toThrow(SqlParseError);
     expect(() => lens.analyze("SELECT id FROM users; SELECT id FROM orders")).toThrow(/one SQL statement/i);
+  });
+
+  it("validates SQL and dialect values at the runtime API boundary", () => {
+    expect(() => analyzeSql(42 as unknown as string, "sqlite")).toThrow("SQL must be a string");
+    expect(() => analyzeSql("SELECT 1", "oracle" as never)).toThrow("dialect must be sqlite, postgresql, or mysql");
+    expect(() => new QueryLens(undefined as never)).toThrow("QueryLens options are required");
   });
 
   it("uses deterministic, documented severity weights", () => {

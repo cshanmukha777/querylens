@@ -10,7 +10,15 @@ const parserDatabase: Record<SqlDialect, string> = {
   mysql: "MySQL",
 };
 
+export function assertSqlDialect(dialect: unknown): asserts dialect is SqlDialect {
+  if (dialect !== "sqlite" && dialect !== "postgresql" && dialect !== "mysql") {
+    throw new TypeError("dialect must be sqlite, postgresql, or mysql.");
+  }
+}
+
 export function parseSql(sql: string, dialect: SqlDialect): SqlAst {
+  if (typeof sql !== "string") throw new TypeError("SQL must be a string.");
+  assertSqlDialect(dialect);
   if (!sql.trim()) throw new SqlParseError("SQL cannot be empty.");
 
   const parser = new parserModule.Parser();
@@ -50,4 +58,12 @@ export function assertSupportedStatement(ast: SqlAst): StatementType {
     throw new UnsupportedStatementError(`Statement type "${String(ast.type)}" is not supported.`);
   }
   return type;
+}
+
+export function parseSelectSql(sql: string, dialect: SqlDialect): SqlAst {
+  const ast = parseSql(sql, dialect);
+  if (statementType(ast) !== "select") {
+    throw new UnsupportedStatementError("Only SELECT statements can be profiled.");
+  }
+  return ast;
 }

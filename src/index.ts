@@ -1,5 +1,6 @@
 import { analyzeSql } from "./analyzer.js";
 import { fingerprintSql } from "./fingerprint.js";
+import { assertSqlDialect } from "./parser.js";
 import { toHtmlReport, toJsonReport } from "./reports.js";
 import type { QueryLensOptions } from "./types.js";
 
@@ -7,9 +8,8 @@ export class QueryLens {
   private readonly options: QueryLensOptions;
 
   constructor(options: QueryLensOptions) {
-    if (!["sqlite", "postgresql", "mysql"].includes(options.dialect)) {
-      throw new TypeError("dialect must be sqlite, postgresql, or mysql.");
-    }
+    if (!options || typeof options !== "object") throw new TypeError("QueryLens options are required.");
+    assertSqlDialect(options.dialect);
     this.options = options;
   }
 
