@@ -37,26 +37,38 @@ function snapshotRecord(record: ProfileRecord): ProfileRecord {
 export class ProfileHistory {
   private readonly entries: ProfileRecord[] = [];
   constructor(private readonly capacity = 100) {
-    if (!Number.isInteger(capacity) || capacity < 1) throw new RangeError("History capacity must be a positive integer.");
+    if (!Number.isInteger(capacity) || capacity < 1)
+      throw new RangeError("History capacity must be a positive integer.");
   }
   add(record: ProfileRecord): void {
     this.entries.push(snapshotRecord(record));
-    if (this.entries.length > this.capacity) this.entries.splice(0, this.entries.length - this.capacity);
+    if (this.entries.length > this.capacity)
+      this.entries.splice(0, this.entries.length - this.capacity);
   }
-  list(): ProfileRecord[] { return this.entries.map(snapshotRecord); }
+  list(): ProfileRecord[] {
+    return this.entries.map(snapshotRecord);
+  }
 }
 
 export class Profiler {
-  constructor(private readonly adapter: SqlAdapter, private readonly history = new ProfileHistory()) {}
+  constructor(
+    private readonly adapter: SqlAdapter,
+    private readonly history = new ProfileHistory(),
+  ) {}
 
-  async profile(sql: string, options: ProfileOptions = {}): Promise<ProfileResult> {
-    if (options.signal?.aborted) throw new AdapterError("Profiling was cancelled before execution.");
+  async profile(
+    sql: string,
+    options: ProfileOptions = {},
+  ): Promise<ProfileResult> {
+    if (options.signal?.aborted)
+      throw new AdapterError("Profiling was cancelled before execution.");
     parseSelectSql(sql, this.adapter.dialect);
     const fingerprint = fingerprintSql(sql, this.adapter.dialect);
     const start = performance.now();
     try {
       const result = await this.adapter.execute(sql, options.parameters ?? []);
-      if (options.signal?.aborted) throw new AdapterError("Profiling was cancelled after execution.");
+      if (options.signal?.aborted)
+        throw new AdapterError("Profiling was cancelled after execution.");
       let plan: unknown;
       let planError: string | undefined;
       if (this.adapter.explain) {
@@ -67,8 +79,12 @@ export class Profiler {
         }
       }
       const record: ProfileRecord = {
-        timestamp: new Date().toISOString(), dialect: this.adapter.dialect, fingerprint,
-        durationMs: Number((performance.now() - start).toFixed(3)), rowCount: result.rowCount, status: "success",
+        timestamp: new Date().toISOString(),
+        dialect: this.adapter.dialect,
+        fingerprint,
+        durationMs: Number((performance.now() - start).toFixed(3)),
+        rowCount: result.rowCount,
+        status: "success",
         ...(plan !== undefined ? { plan } : {}),
         ...(planError ? { planError } : {}),
       };
@@ -76,8 +92,12 @@ export class Profiler {
       return { record, rows: result.rows };
     } catch (cause) {
       const record: ProfileRecord = {
-        timestamp: new Date().toISOString(), dialect: this.adapter.dialect, fingerprint,
-        durationMs: Number((performance.now() - start).toFixed(3)), rowCount: null, status: "error",
+        timestamp: new Date().toISOString(),
+        dialect: this.adapter.dialect,
+        fingerprint,
+        durationMs: Number((performance.now() - start).toFixed(3)),
+        rowCount: null,
+        status: "error",
       };
       this.history.add(record);
       if (cause instanceof AdapterError) throw cause;
@@ -85,5 +105,7 @@ export class Profiler {
     }
   }
 
-  getHistory(): ProfileRecord[] { return this.history.list(); }
+  getHistory(): ProfileRecord[] {
+    return this.history.list();
+  }
 }

@@ -15,12 +15,16 @@ export class CliUsageError extends Error {
 }
 
 function parseDialect(value: string): SqlDialect {
-  if (value === "sqlite" || value === "postgresql" || value === "mysql") return value;
+  if (value === "sqlite" || value === "postgresql" || value === "mysql")
+    return value;
   throw new CliUsageError(`Unsupported dialect: ${value}`);
 }
 
-export function parseCliArguments(args: readonly string[]): CliArguments | null {
-  if (args.length === 0 || args.includes("--help") || args.includes("-h")) return null;
+export function parseCliArguments(
+  args: readonly string[],
+): CliArguments | null {
+  if (args.length === 0 || args.includes("--help") || args.includes("-h"))
+    return null;
 
   const command = args[0];
   if (command !== "analyze" && command !== "fingerprint") {
@@ -34,24 +38,32 @@ export function parseCliArguments(args: readonly string[]): CliArguments | null 
 
   for (let index = 1; index < args.length; index += 1) {
     const argument = args[index];
-    if (argument === undefined) throw new CliUsageError("Invalid command line arguments.");
+    if (argument === undefined)
+      throw new CliUsageError("Invalid command line arguments.");
     if (argument === "--dialect" || argument === "--format") {
-      if (seen.has(argument)) throw new CliUsageError(`${argument} can only be supplied once.`);
+      if (seen.has(argument))
+        throw new CliUsageError(`${argument} can only be supplied once.`);
       seen.add(argument);
       const value = args[index + 1];
-      if (!value || value.startsWith("--")) throw new CliUsageError(`A value is required after ${argument}.`);
+      if (!value || value.startsWith("--"))
+        throw new CliUsageError(`A value is required after ${argument}.`);
       index += 1;
 
       if (argument === "--dialect") dialect = parseDialect(value);
       else {
-        if (command !== "analyze") throw new CliUsageError("--format is only supported by the analyze command.");
-        if (value !== "text" && value !== "json") throw new CliUsageError(`Unsupported format: ${value}`);
+        if (command !== "analyze")
+          throw new CliUsageError(
+            "--format is only supported by the analyze command.",
+          );
+        if (value !== "text" && value !== "json")
+          throw new CliUsageError(`Unsupported format: ${value}`);
         format = value;
       }
       continue;
     }
 
-    if (argument.startsWith("-")) throw new CliUsageError(`Unknown option: ${argument}`);
+    if (argument.startsWith("-"))
+      throw new CliUsageError(`Unknown option: ${argument}`);
     if (file) throw new CliUsageError("Provide exactly one SQL file path.");
     file = argument;
   }

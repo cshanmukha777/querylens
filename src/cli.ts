@@ -11,10 +11,15 @@ async function main(args: string[]): Promise<number> {
   try {
     parsed = parseCliArguments(args);
   } catch (error) {
-    process.stderr.write(`${error instanceof CliUsageError ? error.message : "Invalid command line arguments."}\n${usage}`);
+    process.stderr.write(
+      `${error instanceof CliUsageError ? error.message : "Invalid command line arguments."}\n${usage}`,
+    );
     return 2;
   }
-  if (!parsed) { process.stdout.write(usage); return 0; }
+  if (!parsed) {
+    process.stdout.write(usage);
+    return 0;
+  }
 
   try {
     const sql = await readFile(parsed.file, "utf8");
@@ -23,18 +28,33 @@ async function main(args: string[]): Promise<number> {
       return 0;
     }
     const result = analyzeSql(sql, parsed.dialect);
-    if (parsed.format === "json") process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    if (parsed.format === "json")
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     else {
-      process.stdout.write(`QueryLens structural score: ${result.score}/100 (${result.grade})\n`);
-      process.stdout.write(`Dialect: ${result.dialect} · Statement: ${result.statementType}\n`);
-      for (const item of result.findings) process.stdout.write(`\n[${item.severity.toUpperCase()}] ${item.title}\n${item.explanation}\n${item.remediation}\n`);
-      if (result.findings.length === 0) process.stdout.write("No configured static findings. This does not imply a good runtime plan.\n");
+      process.stdout.write(
+        `QueryLens structural score: ${result.score}/100 (${result.grade})\n`,
+      );
+      process.stdout.write(
+        `Dialect: ${result.dialect} · Statement: ${result.statementType}\n`,
+      );
+      for (const item of result.findings)
+        process.stdout.write(
+          `\n[${item.severity.toUpperCase()}] ${item.title}\n${item.explanation}\n${item.remediation}\n`,
+        );
+      if (result.findings.length === 0)
+        process.stdout.write(
+          "No configured static findings. This does not imply a good runtime plan.\n",
+        );
     }
     return 0;
   } catch (error) {
-    process.stderr.write(`${error instanceof Error ? error.message : "QueryLens failed."}\n`);
+    process.stderr.write(
+      `${error instanceof Error ? error.message : "QueryLens failed."}\n`,
+    );
     return 1;
   }
 }
 
-void main(process.argv.slice(2)).then((code) => { process.exitCode = code; });
+void main(process.argv.slice(2)).then((code) => {
+  process.exitCode = code;
+});

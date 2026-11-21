@@ -8,7 +8,8 @@ export class QueryLens {
   private readonly options: QueryLensOptions;
 
   constructor(options: QueryLensOptions) {
-    if (!options || typeof options !== "object") throw new TypeError("QueryLens options are required.");
+    if (!options || typeof options !== "object")
+      throw new TypeError("QueryLens options are required.");
     assertSqlDialect(options.dialect);
     this.options = options;
   }
@@ -26,21 +27,52 @@ export class QueryLens {
     return fingerprintSql(sql, this.options.dialect);
   }
 
-  json(result: AnalysisResult): string { return toJsonReport(result); }
-  html(result: AnalysisResult): string { return toHtmlReport(result); }
+  json(result: AnalysisResult): string {
+    return toJsonReport(result);
+  }
+  html(result: AnalysisResult): string {
+    return toHtmlReport(result);
+  }
 }
 
 export { analyzeSql, fingerprintSql, toHtmlReport, toJsonReport };
-export { AdapterError, QueryLensError, SqlParseError, UnsupportedStatementError } from "./errors.js";
+export {
+  AdapterError,
+  QueryLensError,
+  SqlParseError,
+  UnsupportedStatementError,
+} from "./errors.js";
 export { scoringMethodology, scoreFindings } from "./scoring.js";
 export { SQLiteAdapter } from "./adapters/sqlite.js";
-export type { PlanFinding, QueryResult, SqlAdapter, SqliteDatabaseLike } from "./adapters/adapter.js";
-export { ProfileHistory, Profiler } from "./profiler.js";
-export type { ProfileOptions, ProfileRecord, ProfileResult } from "./profiler.js";
 export type {
-  AnalysisContext, AnalysisResult, AnalysisRule, AnalyzeOptions, ComplexityIndicators, Finding, QueryLensOptions,
-  Recommendation, SchemaSnapshot, Severity, SourceLocation, SourcePosition, SqlDialect, StatementType,
-  TableDefinition, IndexDefinition,
+  PlanFinding,
+  QueryResult,
+  SqlAdapter,
+  SqliteDatabaseLike,
+} from "./adapters/adapter.js";
+export { ProfileHistory, Profiler } from "./profiler.js";
+export type {
+  ProfileOptions,
+  ProfileRecord,
+  ProfileResult,
+} from "./profiler.js";
+export type {
+  AnalysisContext,
+  AnalysisResult,
+  AnalysisRule,
+  AnalyzeOptions,
+  ComplexityIndicators,
+  Finding,
+  QueryLensOptions,
+  Recommendation,
+  SchemaSnapshot,
+  Severity,
+  SourceLocation,
+  SourcePosition,
+  SqlDialect,
+  StatementType,
+  TableDefinition,
+  IndexDefinition,
 } from "./types.js";
 
 // Keep the runtime export surface explicit while supporting downstream type imports.

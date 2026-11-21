@@ -7,7 +7,10 @@ export interface QueryResult<Row = Record<string, unknown>> {
 
 export interface SqlAdapter {
   readonly dialect: SqlDialect;
-  execute<Row = Record<string, unknown>>(sql: string, parameters?: readonly unknown[]): Promise<QueryResult<Row>>;
+  execute<Row = Record<string, unknown>>(
+    sql: string,
+    parameters?: readonly unknown[],
+  ): Promise<QueryResult<Row>>;
   explain?(sql: string, parameters?: readonly unknown[]): Promise<unknown>;
 }
 
@@ -15,7 +18,10 @@ export interface SqlAdapter {
 export interface SqliteDatabaseLike {
   prepare(sql: string): {
     all(...parameters: unknown[]): unknown[];
-    run(...parameters: unknown[]): { changes: number; lastInsertRowid: number | bigint };
+    run(...parameters: unknown[]): {
+      changes: number;
+      lastInsertRowid: number | bigint;
+    };
   };
   pragma(source: string): unknown;
 }

@@ -1,6 +1,7 @@
 export type SqlDialect = "sqlite" | "postgresql" | "mysql";
 export type Severity = "info" | "warning" | "critical";
-export type StatementType = "select" | "insert" | "update" | "delete" | "unknown";
+export type StatementType =
+  "select" | "insert" | "update" | "delete" | "unknown";
 
 export interface SourcePosition {
   offset: number;

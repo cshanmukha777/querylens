@@ -11,9 +11,11 @@ function normalizeAst(value: unknown): unknown {
     const type = String(input.type ?? "").toLowerCase();
     for (const key of Object.keys(input).sort()) {
       if (key === "loc" || key === "comments" || key === "raw") continue;
-      if ((key === "value" && /number|string|bool|null|hex|bit/.test(type))
-        || (type === "param" && key === "value")
-        || (type === "var" && key === "name")) {
+      if (
+        (key === "value" && /number|string|bool|null|hex|bit/.test(type)) ||
+        (type === "param" && key === "value") ||
+        (type === "var" && key === "name")
+      ) {
         result[key] = "?";
       } else {
         result[key] = normalizeAst(input[key]);

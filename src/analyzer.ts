@@ -2,7 +2,16 @@ import { fingerprintSql } from "./fingerprint.js";
 import { assertSupportedStatement, parseSql, type SqlAst } from "./parser.js";
 import { scoreFindings } from "./scoring.js";
 import { defaultRules } from "./rules/basic-rules.js";
-import type { AnalysisContext, AnalysisResult, AnalysisRule, AnalyzeOptions, ComplexityIndicators, Finding, Recommendation, SqlDialect } from "./types.js";
+import type {
+  AnalysisContext,
+  AnalysisResult,
+  AnalysisRule,
+  AnalyzeOptions,
+  ComplexityIndicators,
+  Finding,
+  Recommendation,
+  SqlDialect,
+} from "./types.js";
 
 function sourceLocation(value: unknown): Finding["location"] {
   if (!value || typeof value !== "object") return undefined;
@@ -12,7 +21,12 @@ function sourceLocation(value: unknown): Finding["location"] {
   const point = (candidate: unknown) => {
     if (!candidate || typeof candidate !== "object") return undefined;
     const p = candidate as Record<string, unknown>;
-    if (typeof p.offset !== "number" || typeof p.line !== "number" || typeof p.column !== "number") return undefined;
+    if (
+      typeof p.offset !== "number" ||
+      typeof p.line !== "number" ||
+      typeof p.column !== "number"
+    )
+      return undefined;
     return { offset: p.offset, line: p.line, column: p.column };
   };
   const start = point(range.start);
@@ -25,18 +39,32 @@ function countComplexity(ast: SqlAst): ComplexityIndicators {
   let nestedQueries = 0;
   let booleanBranches = 0;
   const visit = (value: unknown, root = false): void => {
-    if (Array.isArray(value)) { for (const item of value) visit(item); return; }
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item);
+      return;
+    }
     if (!value || typeof value !== "object") return;
     const current = value as Record<string, unknown>;
-    if (!root && String(current.type).toLowerCase() === "select") nestedQueries += 1;
-    if (String(current.type).toLowerCase() === "binary_expr" && String(current.operator).toUpperCase() === "OR") booleanBranches += 1;
+    if (!root && String(current.type).toLowerCase() === "select")
+      nestedQueries += 1;
+    if (
+      String(current.type).toLowerCase() === "binary_expr" &&
+      String(current.operator).toUpperCase() === "OR"
+    )
+      booleanBranches += 1;
     for (const child of Object.values(current)) visit(child);
   };
   visit(ast, true);
   const from = Array.isArray(node.from) ? node.from : [];
-  const columns = Array.isArray(node.columns) ? node.columns.length : node.columns == null ? 0 : 1;
+  const columns = Array.isArray(node.columns)
+    ? node.columns.length
+    : node.columns == null
+      ? 0
+      : 1;
   return {
-    joins: from.filter((item) => !!item && typeof item === "object" && "join" in item).length,
+    joins: from.filter(
+      (item) => !!item && typeof item === "object" && "join" in item,
+    ).length,
     nestedQueries,
     booleanBranches,
     projectionColumns: columns,
@@ -51,7 +79,8 @@ function recommendationsFrom(findings: Finding[]): Recommendation[] {
     description: item.explanation,
     evidence: item.evidence,
     confidence: item.confidence,
-    limitations: "This is static guidance. Confirm semantic equivalence and validate with your database's actual execution plan and representative data.",
+    limitations:
+      "This is static guidance. Confirm semantic equivalence and validate with your database's actual execution plan and representative data.",
   }));
 }
 
@@ -71,7 +100,11 @@ export function analyzeSql(
   };
   const rules = [...defaultRules, ...(options.rules ?? [])];
   const loc = sourceLocation(ast);
-  const findings = rules.flatMap((rule) => rule.analyze(context).map((item) => loc ? { ...item, location: loc } : item));
+  const findings = rules.flatMap((rule) =>
+    rule
+      .analyze(context)
+      .map((item) => (loc ? { ...item, location: loc } : item)),
+  );
   const counts = {
     info: findings.filter((item) => item.severity === "info").length,
     warning: findings.filter((item) => item.severity === "warning").length,
