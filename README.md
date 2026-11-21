@@ -6,18 +6,18 @@ QueryLens provides static SQL structure checks and opt-in database profiling. St
 
 ## Status
 
-This repository is under active development. The initial implementation supports static analysis and a read-only SQLite adapter. PostgreSQL and MySQL adapters, the CLI, and a browser demo are not yet available.
+The package provides static analysis for SQLite, PostgreSQL, and MySQL SQL syntax, a command-line interface, and opt-in profiling through its SQLite adapter. PostgreSQL and MySQL database profiling adapters are not implemented. QueryLens is early-stage software; validate all guidance against your schema and actual database plans.
 
 ## Install
 
 ```sh
-npm install @cshanmukha777/querylens
+npm install @shanmukha_npm/querylens
 ```
 
 ## Quick start
 
 ```ts
-import { QueryLens } from "@cshanmukha777/querylens";
+import { QueryLens } from "@shanmukha_npm/querylens";
 
 const lens = new QueryLens({ dialect: "sqlite" });
 const result = lens.analyze(`SELECT * FROM orders WHERE DATE(created_at) = '2026-11-22'`);
@@ -57,7 +57,7 @@ Fingerprints are truncated SHA-256 structural identifiers with literal values an
 
 ## CLI
 
-After building or installing the package, run `querylens --help`. Current commands are:
+After installing the package, run `querylens --help`. The CLI is also available after `npm run build` in this repository. Commands are:
 
 ```sh
 querylens analyze ./queries.sql --dialect postgresql --format json
@@ -72,7 +72,7 @@ The CLI performs static analysis only. It does not open a database connection.
 
 ```ts
 import Database from "better-sqlite3";
-import { Profiler, SQLiteAdapter } from "@cshanmukha777/querylens";
+import { Profiler, SQLiteAdapter } from "@shanmukha_npm/querylens";
 
 const db = new Database("sample.sqlite", { readonly: true, fileMustExist: true });
 const profiler = new Profiler(new SQLiteAdapter(db));
@@ -80,7 +80,11 @@ const { record } = await profiler.profile("SELECT id FROM users WHERE id = ?", {
 console.log(record.durationMs, record.rowCount, record.plan);
 ```
 
+Install the optional SQLite driver separately with `npm install better-sqlite3`. QueryLens does not bundle a database driver. `SQLiteAdapter` requires a handle that supports `prepare()` and `pragma()` so it can enable SQLite's `query_only` mode. Open the database with `readonly: true` as well when profiling untrusted or public-facing workloads.
+
 The duration is a measurement of this execution in the current environment and is not comparable without controlling hardware, cache state, data, and concurrency. SQLite plans come from non-executing `EXPLAIN QUERY PLAN`. PostgreSQL and MySQL profiling are not claimed as implemented yet.
+
+The SQLite driver executes synchronously, so an `AbortSignal` cannot interrupt a query already in progress. It is checked before and after execution.
 
 ## Development
 
