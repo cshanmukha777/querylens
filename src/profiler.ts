@@ -20,16 +20,25 @@ export interface ProfileRecord {
   planError?: string;
 }
 
+function snapshotRecord(record: ProfileRecord): ProfileRecord {
+  try {
+    return structuredClone(record);
+  } catch {
+    // Custom adapters may return non-cloneable plan values; preserve them without failing profiling.
+    return { ...record };
+  }
+}
+
 export class ProfileHistory {
   private readonly entries: ProfileRecord[] = [];
   constructor(private readonly capacity = 100) {
     if (!Number.isInteger(capacity) || capacity < 1) throw new RangeError("History capacity must be a positive integer.");
   }
   add(record: ProfileRecord): void {
-    this.entries.push(record);
+    this.entries.push(snapshotRecord(record));
     if (this.entries.length > this.capacity) this.entries.splice(0, this.entries.length - this.capacity);
   }
-  list(): ProfileRecord[] { return this.entries.map((record) => ({ ...record })); }
+  list(): ProfileRecord[] { return this.entries.map(snapshotRecord); }
 }
 
 export class Profiler {

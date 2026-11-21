@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
-import { AdapterError, analyzeSql, Profiler, QueryLens, SQLiteAdapter, SqlParseError, scoreFindings, UnsupportedStatementError } from "../src/index.js";
+import { AdapterError, analyzeSql, Profiler, ProfileHistory, QueryLens, SQLiteAdapter, SqlParseError, scoreFindings, UnsupportedStatementError } from "../src/index.js";
 
 describe("static SQL analysis", () => {
   const lens = new QueryLens({ dialect: "sqlite" });
@@ -147,5 +147,18 @@ describe("SQLite profiling", () => {
   it("requires query_only support on the injected database handle", () => {
     expect(() => new SQLiteAdapter({ prepare: () => ({ all: () => [], run: () => ({ changes: 0, lastInsertRowid: 0 }) }) } as never))
       .toThrow(AdapterError);
+  });
+
+  it("keeps profile history plan snapshots isolated from caller mutation", () => {
+    const history = new ProfileHistory();
+    const record = {
+      timestamp: new Date().toISOString(), dialect: "sqlite" as const, fingerprint: "abc", durationMs: 1,
+      rowCount: 1, status: "success" as const, plan: { rows: [{ detail: "SCAN users" }] },
+    };
+    history.add(record);
+    record.plan.rows[0]!.detail = "mutated before returning history";
+    const listed = history.list();
+    (listed[0]?.plan as { rows: Array<{ detail: string }> }).rows[0]!.detail = "mutated returned copy";
+    expect((history.list()[0]?.plan as { rows: Array<{ detail: string }> }).rows[0]?.detail).toBe("SCAN users");
   });
 });
